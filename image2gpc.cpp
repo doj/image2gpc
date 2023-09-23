@@ -34,8 +34,14 @@ int main(int argc, char **argv)
     return EX_NOINPUT;
   }
 
-  std::cout << "define image_width  = " << w << ";\n";
-  std::cout << "define image_height = " << h << ";\n";
+  int dw = w / 8;
+  if (w % 8)
+  {
+    ++dw;
+  }
+  std::cout << "define data_width   = " << dw << "; // number of bytes in the data() section for each image row\n";
+  std::cout << "define image_width  = " << w << "; // image width in pixels\n";
+  std::cout << "define image_height = " << h << "; // image height in pixels\n";
   std::cout << "data(";
   for(int y = 0; y < h; ++y)
   {
@@ -61,8 +67,50 @@ int main(int argc, char **argv)
   }
   std::cout << ");\n";
 
+  std::cout << R"(
+// @return OLED_WHITE if @p val is TRUE  and @p invert is FALSE.
+// @return OLED_BLACK if @p val is FALSE and @p invert is FALSE.
+// @return OLED_BLACK if @p val is TRUE  and @p invert is TRUE.
+// @return OLED_WHITE if @p val is FALSE and @p invert is TRUE.
+function pixel_invert(val, invert)
+{
+	if (invert)
+	{
+		if (val)
+		{
+			return OLED_BLACK;
+		}
+		return OLED_WHITE;
+	}
+	if (val)
+	{
+		return OLED_WHITE;
+	}
+	return OLED_BLACK;
+}
 
-
+int image_x; // variable used by draw_image()
+int image_y; // variable used by draw_image()
+// draw the image defined in the data() section to the OLED display
+// @param pos_x top left X position
+// @param pos_y top left Y position
+// @param invert if FALSE draw the image as defined in the data() section,
+//               if TRUE draw an inverted image.
+function draw_image(pos_x, pos_y, invert)
+{
+	for(image_y = 0; image_y < image_height; image_y++)
+	{
+		for(image_x = 0; image_x < image_width; image_x++)
+		{
+  			pixel_oled(pos_x+image_x,
+  			           pos_y+image_y,
+  			           pixel_invert(test_bit(duint8(image_y*data_width + (image_x >> 3)),
+  			                                 image_x & 7),
+  			                        invert));
+  		}
+	}
+}
+)";
 
   stbi_image_free(data);
   return EX_OK;
