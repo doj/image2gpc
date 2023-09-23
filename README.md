@@ -17,6 +17,12 @@ Usage
 
 image2gpc <filename>
 
+GPC Example
+------------
+
+Study the GPC scripts on https://www.cubic.org/~doj/ps3/ how the image data
+created by this program can be used.
+
 Contact
 --------
 
