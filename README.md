@@ -9,6 +9,7 @@ Supports the following image file formats: JPEG, PNG, BMP, PSD, TGA, GIF, HDR, P
 
 Because the Chronus Zen only has a black and white display,
 the image2gpc program only considers grayscale input values.
+Maximum image size: 128x64
 A pixel of the input image with a value < 128 will be black,
 a pixel of the input image with a value >= 128 will be white.
 

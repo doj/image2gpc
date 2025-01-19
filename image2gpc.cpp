@@ -2,6 +2,8 @@
  * image2gpc
  * convert a pixel image file to a Chronus GPC script
  * https://github.com/doj/image2gpc
+ *
+ * https://guide.cronus.support/gpc
  */
 
 #define STB_IMAGE_IMPLEMENTATION 1
@@ -13,6 +15,7 @@
 
 int main(int argc, char **argv)
 {
+  // parse command line
   if (argc != 2)
   {
     std::cerr << "usage: image2gpc <filename>\n";
@@ -20,6 +23,7 @@ int main(int argc, char **argv)
   }
   const char *filename = argv[1];
 
+  // load image
   int w,h,n;
   unsigned char *data = stbi_load(filename, &w, &h, &n, 1);
   if (! data)
@@ -34,38 +38,58 @@ int main(int argc, char **argv)
     return EX_NOINPUT;
   }
 
-  int dw = w / 8;
-  if (w % 8)
+  // check image
+  if (w > 128)
   {
-    ++dw;
+    std::clog << "image width " << w << " > 128\n";
   }
-  std::cout << "define data_width   = " << dw << "; // number of bytes in the data() section for each image row\n";
+  if (h > 64)
+  {
+    std::clog << "image height " << h << " > 64\n";
+  }
+  if (n != 1)
+  {
+    std::cerr << "The image has channels=" << n << ". Only expect 1 channel (grayscale)\n";
+    return EX_DATAERR;
+  }
+
+  std::cout << "// image created with https://github.com/doj/image2gpc\n";
   std::cout << "define image_width  = " << w << "; // image width in pixels\n";
   std::cout << "define image_height = " << h << "; // image height in pixels\n";
-  std::cout << "data(";
+  std::cout << "const uint16 image_data[][] = {\n";
   for(int y = 0; y < h; ++y)
   {
-    uint8_t b = 0;
+    std::cout << "  { ";
+    uint16_t b = 0;
     int x;
     for(x = 0; x < w; ++x)
     {
       if (data[y*w + x] >= 128)
       {
-        b |= (1 << (x & 7));
+        b |= (1 << (x & 15));
       }
-      if ((x & 7) == 7)
+      if ((x & 15) == 15)
       {
-        std::cout << static_cast<int>(b) << ',';
+        std::cout << b;
         b = 0;
+        if (x < w-1)
+        {
+          std::cout << ',';
+        }
       }
     }
-    if ((x & 7) != 0)
+    if ((x & 15) != 0)
     {
-      std::cout << static_cast<int>(b) << ',';
+      std::cout << b;
+    }
+    std::cout << " }";
+    if (y < h-1)
+    {
+      std::cout << ',';
     }
     std::cout << '\n';
   }
-  std::cout << ");\n";
+  std::cout << "};\n";
 
   std::cout << R"(
 // @return OLED_WHITE if @p val is TRUE  and @p invert is FALSE.
@@ -74,19 +98,19 @@ int main(int argc, char **argv)
 // @return OLED_WHITE if @p val is FALSE and @p invert is TRUE.
 function pixel_invert(val, invert)
 {
-	if (invert)
-	{
-		if (val)
-		{
-			return OLED_BLACK;
-		}
-		return OLED_WHITE;
-	}
-	if (val)
-	{
-		return OLED_WHITE;
-	}
-	return OLED_BLACK;
+  if (invert)
+  {
+    if (val)
+    {
+      return OLED_BLACK;
+    }
+    return OLED_WHITE;
+  }
+  if (val)
+  {
+    return OLED_WHITE;
+  }
+  return OLED_BLACK;
 }
 
 int image_x; // variable used by draw_image()
@@ -98,17 +122,17 @@ int image_y; // variable used by draw_image()
 //               if TRUE draw an inverted image.
 function draw_image(pos_x, pos_y, invert)
 {
-	for(image_y = 0; image_y < image_height; image_y++)
-	{
-		for(image_x = 0; image_x < image_width; image_x++)
-		{
-  			pixel_oled(pos_x+image_x,
-  			           pos_y+image_y,
-  			           pixel_invert(test_bit(duint8(image_y*data_width + (image_x >> 3)),
-  			                                 image_x & 7),
-  			                        invert));
-  		}
-	}
+  for(image_y = 0; image_y < image_height; image_y++)
+  {
+    for(image_x = 0; image_x < image_width; image_x++)
+    {
+      pixel_oled(pos_x + image_x,
+                 pos_y + image_y,
+                 pixel_invert(test_bit(image_data[image_y][image_x/16],
+                                       image_x & 15),
+      invert));
+    }
+  }
 }
 )";
 
