@@ -11,7 +11,7 @@
 #include "stb_image.h"
 
 #include <iostream>
-#include <sysexits.h>
+#include "sysexits.h"
 
 int main(int argc, char **argv)
 {

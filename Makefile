@@ -1,12 +1,23 @@
-CXXFLAGS += -Wall -std=c++17
+# Name of the source and output
+TARGET = image2gpc
+SRC = image2gpc.cpp
+OUT = $(TARGET).exe
 
-all:	image2gpc
+# Compiler and flags
+CXX = cl
+CXXFLAGS = /nologo /O2 /EHsc /MD /DNDEBUG
+LDFLAGS = /link /OUT:$(OUT)
+
+# Default target
+all: $(OUT)
+
+# Link and compile
+$(OUT): $(SRC)
+	$(CXX) $(CXXFLAGS) $(SRC) $(LDFLAGS)
+
+# Clean build artifacts
+clean:
+	del /Q $(OUT) *.obj *.pdb *.ilk
 
 test:	all
-	./image2gpc gta5-bw.png
-
-clean:
-	$(RM) image2gpc *.o *~
-
-image2gpc:	image2gpc.o
-	$(CXX) -o $@ $^
+	$(OUT) gta5-bw.png
